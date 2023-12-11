@@ -27,23 +27,33 @@ speechiness_%: Amount of spoken words in the song
 
 I have used pandas, pyplot and seaborn; hope it will be of help to novices like me and also would be interesting for you to read.
 
-#import all necessary libraries
+**#import all necessary libraries**
+
 import pandas as pd
+
 import matplotlib.pyplot as plt
+
 import seaborn as sns
-#Some basic options in pandas for better readability and usage
+
 pd.set_option("display.max_columns", None)
+
 pd.set_option("display.max_rows", None)
-pd.set_option("display.max_colwidth", None) #automatic linebreaks and multiline cells
-#read_csv to read the csv file
+
+pd.set_option("display.max_colwidth", None)
+
+read_csv to read the csv file
+
 df = pd.read_csv('/kaggle/input/top-spotify-songs-2023/spotify-2023.csv', encoding='ISO-8859-1')
-Data Cleaning and Transformation
-#info on the dataset
+
+
+# Data Cleaning and Transformation
+
+info on the dataset
 df.info()
 <class 'pandas.core.frame.DataFrame'>
 RangeIndex: 953 entries, 0 to 952
 Data columns (total 24 columns):
- #   Column                Non-Null Count  Dtype 
+     Column                Non-Null Count  Dtype 
 ---  ------                --------------  ----- 
  0   track_name            953 non-null    object
  1   artist(s)_name        953 non-null    object
@@ -69,6 +79,7 @@ Data columns (total 24 columns):
  21  instrumentalness_%    953 non-null    int64 
  22  liveness_%            953 non-null    int64 
  23  speechiness_%         953 non-null    int64 
+
 dtypes: int64(17), object(7)
 memory usage: 178.8+ KB
 There are some columns, mainly streams, in_shazam_charts and in_deezer_playlists are of datatype object. We would need to convert them to int datatype if we use them for our analysis.
@@ -92,20 +103,31 @@ So we can replace the null values in in_shazam_charts with 0. There are also som
 Since we dont know what the suitable key to add would be for the missing values and the key value plays an important role in our analysis we will remove the rows with null values for key column as to preserve the integrity of our dataset
 
 df['in_shazam_charts'] = df['in_shazam_charts'].replace({',': ''}, regex=True).astype(float)
+
 df["in_shazam_charts"].fillna(0, inplace = True)
+
 df['in_shazam_charts'] = df["in_shazam_charts"].astype(int)
 
 print('Missing "in_shazam_charts" values after removal : ', df['in_shazam_charts'].isnull().sum())
+
 Missing "in_shazam_charts" values after removal :  0
+
 #remove the rows with missing key values
+
 df = df.dropna(subset=['key'])
 
 print('Missing "key" values after removal : ', df['key'].isnull().sum())
+
 Missing "key" values after removal :  0
+
 missing_values = df.isnull().sum()
+
 missing_values[missing_values > 0]
+
 Series([], dtype: int64)
+
 df.dtypes
+
 track_name              object
 artists                 object
 artist_count             int64
@@ -131,37 +153,57 @@ instrumentalness_%       int64
 liveness_%               int64
 speechiness_%            int64
 dtype: object
+
 #find the categorical columns
+
 df.select_dtypes(include=['object','bool','category']).columns.tolist()
+
 ['track_name', 'artists', 'streams', 'in_deezer_playlists', 'key', 'mode']
+
 We will be using the streams and in_deezer_playlists columns in our analysis so we need to convert this column from categorical to numeric datatype. We will first convert it to numeric which will convert the non-numeric values to NaN values which we will then replace with 0.
 
-# Convert 'streams', 'in_deezer_playlists' columns to numerical data types
+##Convert 'streams', 'in_deezer_playlists' columns to numerical data types
 df['streams'] = pd.to_numeric(df['streams'], errors='coerce')
+
 df['in_deezer_playlists'] = pd.to_numeric(df['in_deezer_playlists'], errors='coerce')
+
 missing_values = df.isnull().sum()
+
 missing_values[missing_values > 0]
+
 streams                 1
+
 in_deezer_playlists    75
+
 dtype: int64
+
 df['streams'].fillna(0, inplace=True)
+
 df['streams'] = df['streams'].astype("int")
+
 df['in_deezer_playlists'].fillna(0, inplace=True)
+
 missing_values = df.isnull().sum()
+
 missing_values[missing_values > 0]
+
 Series([], dtype: int64)
+
 def to_month_name(month):
     month_names = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     return month_names[month]
+
 df['released_month'] = (df['released_month']).apply(to_month_name)
+
 You can download the new csv file after you run the cell below from Output under Data panel.
 
-#get the csv file for visualization
+Get the csv file for visualization
+
 df.to_csv('spotify-cleaned.csv', index=False)
 In this dataset we can see that one song can also have multiple artists, so we will seperate out the artists into a list for further analysis.
 
-# Turning the artists column into list instead of a single string
-artists = []
+#Turning the artists column into list instead of a single string
+artists = [ ]
 
 for row in df['artists']:
     item = row.split(',')
@@ -169,17 +211,14 @@ for row in df['artists']:
 
 df['artists'] = artists
 df.head()
-track_name	artists	artist_count	released_year	released_month	released_day	in_spotify_playlists	in_spotify_charts	streams	in_apple_playlists	in_apple_charts	in_deezer_playlists	in_deezer_charts	in_shazam_charts	bpm	key	mode	danceability_%	valence_%	energy_%	acousticness_%	instrumentalness_%	liveness_%	speechiness_%
-0	Seven (feat. Latto) (Explicit Ver.)	[Latto, Jung Kook]	2	2023	July	14	553	147	141381703	43	263	45.0	10	826	125	B	Major	80	89	83	31	0	8	4
-1	LALA	[Myke Towers]	1	2023	March	23	1474	48	133716286	48	126	58.0	14	382	92	C#	Major	71	61	74	7	0	10	4
-2	vampire	[Olivia Rodrigo]	1	2023	June	30	1397	113	140003974	94	207	91.0	14	949	138	F	Major	51	32	53	17	0	31	6
-3	Cruel Summer	[Taylor Swift]	1	2019	August	23	7858	100	800840817	116	207	125.0	12	548	170	A	Major	55	58	72	11	0	11	15
-4	WHERE SHE GOES	[Bad Bunny]	1	2023	May	18	3133	50	303236322	84	133	87.0	15	425	144	A	Minor	65	23	80	14	63	11	6
-Flatten the artists column now to get a single list containing all the names in the artists column, even if they contain multiple artists for each song
 
+
+Flatten the artists column now to get a single list containing all the names in the artists column, even if they contain multiple artists for each song
 artists_flattened = []
 for item in artists:
     artists_flattened.extend(item)
+
+
 Analysis and Visualization
 Now lets dive into the cleaned data and look for some interesting details and patterns.
 
@@ -207,6 +246,9 @@ Harry Styles      13
  Metro Boomin     12
 Name: count, dtype: int64
 
+![image](https://github.com/abhinavliverpool/Spotify/assets/124881241/be4e7f82-f63e-425d-96fc-5d6c6450d3fa)
+
+
 #Top 10 streamed songs on Spotify
 top_streamed_spotify = df[['track_name', 'artists' , 'streams', 'released_year']].sort_values(by='streams', ascending=False);
 
@@ -215,6 +257,9 @@ plt.xlabel("Total streams (in billions)")
 plt.ylabel("Track Name")
 plt.title("Top 10 songs streamed on Spotify")
 Text(0.5, 1.0, 'Top 10 songs streamed on Spotify')
+
+![image](https://github.com/abhinavliverpool/Spotify/assets/124881241/b03ebf08-fdbc-43c7-80b6-1dcdf3582ced)
+
 
 #Top 10 songs saved in Spotify playlists
 top_in_spotify_playlists = df[['track_name', 'artists' , 'in_spotify_playlists']].sort_values(by='in_spotify_playlists', ascending=False).head(10);
@@ -225,6 +270,9 @@ plt.ylabel("Track Name")
 plt.title("Top 10 songs saved on Spotify playlists")
 Text(0.5, 1.0, 'Top 10 songs saved on Spotify playlists')
 
+![image](https://github.com/abhinavliverpool/Spotify/assets/124881241/1c33f39e-1990-4e1c-ad4c-901fbe145f37)
+
+
 #Top 10 songs saved on Apple playlists
 top_in_apple_playlists = df[['track_name', 'artists' , 'in_apple_playlists']].sort_values(by='in_apple_playlists', ascending=False).head(10);
 
@@ -234,6 +282,9 @@ plt.ylabel("Track Name")
 plt.title("Top 10 songs saved on Apple playlists")
 Text(0.5, 1.0, 'Top 10 songs saved on Apple playlists')
 
+![image](https://github.com/abhinavliverpool/Spotify/assets/124881241/5c720324-8efc-4d09-a55d-0bdde2d88687)
+
+
 #Top 10 songs saved on Deezer playlists
 top_in_deezer_playlists = df[['track_name', 'artists' , 'in_deezer_playlists']].sort_values(by='in_deezer_playlists', ascending=False).head(10);
 
@@ -242,6 +293,9 @@ plt.xlabel("Unique deezer playlists saved in")
 plt.ylabel("Track Name")
 plt.title("Top 10 songs saved on Deezer playlists")
 Text(0.5, 1.0, 'Top 10 songs saved on Deezer playlists')
+
+![image](https://github.com/abhinavliverpool/Spotify/assets/124881241/74e26e91-c203-4b06-af91-95c16b08f4e6)
+
 
 "Blinding Lights" seem to have a good performance overall on both Spotify and Apple platform.
 
@@ -263,6 +317,9 @@ sns.heatmap(cross_platform_corr_matrix, annot=True, cmap='crest')
 plt.title('Correlation Heatmap: Cross-Platform Metrics')
 Text(0.5, 1.0, 'Correlation Heatmap: Cross-Platform Metrics')
 
+![image](https://github.com/abhinavliverpool/Spotify/assets/124881241/33481e68-c15f-47fd-8319-fdd8c6decee6)
+
+
 Now let us look at some of the audio features across the dataset and analyse them.
 
 attribute_columns = ["danceability_%", "valence_%", "energy_%", "acousticness_%", "instrumentalness_%", "liveness_%", "speechiness_%", 'bpm']
@@ -272,6 +329,9 @@ attribute_corr_matrix
 sns.heatmap(attribute_corr_matrix, annot=True, cmap='crest')
 plt.title("Correlation Heatmap: Song's Attribute Metrics")
 Text(0.5, 1.0, "Correlation Heatmap: Song's Attribute Metrics")
+
+![image](https://github.com/abhinavliverpool/Spotify/assets/124881241/0b3e8267-1b7c-42d9-a0a3-34b92b1f877e)
+
 
 There is a negative relation between energy and acousticness.
 
@@ -290,6 +350,8 @@ for i, feature in enumerate(features_columns, start=1):
     sns.scatterplot(x=df[feature], y=df['streams'], hue=df[feature])
     
 plt.tight_layout()
+
+![image](https://github.com/abhinavliverpool/Spotify/assets/124881241/1c944d4d-5b6f-40ac-ba0f-40be19715ea6)
 
 To finish it, lets look at the tops songs streamed on Spotify in the past few years.
 
@@ -311,6 +373,9 @@ released_year
 2018     10
 Name: count, dtype: int64
 
+![image](https://github.com/abhinavliverpool/Spotify/assets/124881241/796b8005-f8ab-4250-85a7-9bf86c4d3224)
+
+
 years = ['2022', '2021', '2020']
 
 plt.figure(figsize=(20, 10))
@@ -324,7 +389,9 @@ for i, year in enumerate(years, start=1):
     
 plt.tight_layout()
 
-Are there any familiar songs? Go on take a break and listen to some of them.
+![image](https://github.com/abhinavliverpool/Spotify/assets/124881241/91f8ef41-62f0-4279-ab6e-12f500944d1f)
+
+If there are any familiar songs? Go on take a break and listen to some of them :).
 
 Findings
 A song present in Spotify charts is likely to be also present in Apple and Deezer charts.
